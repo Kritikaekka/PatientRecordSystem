@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book an Appointment</title>
+  <link rel="stylesheet" href="appointment-style.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Book an Appointment</h2>
+    <form id="appointmentForm" class="appointment-form">
+      <label for="patient_name">Full Name</label>
+      <input type="text" id="patient_name" placeholder="Enter your full name" required />
+
+      <label for="contact_number">Contact Number</label>
+      <input type="tel" id="contact_number" placeholder="Enter your contact number" required />
+
+      <label for="doctor_id">Select Doctor</label>
+      <select id="doctor_id" required>
+        <option value="">-- Select Doctor --</option>
+      </select>
+
+      <label for="appointment_date">Appointment Date</label>
+      <input type="date" id="appointment_date" required min="" />
+
+      <label for="appointment_time">Appointment Time Slot</label>
+      <select id="appointment_time" required>
+        <option value="">-- Select a time slot --</option>
+      </select>
+
+      <button type="submit">Book Appointment</button>
+    </form>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const backendUrl = 'http://localhost:3000';
+
+    // Set min date for appointment date input (today)
+    document.getElementById('appointment_date').min = new Date().toISOString().split('T')[0];
+
+    // Populate doctor dropdown
+    const doctorSelect = document.getElementById('doctor_id');
+    fetch(`${backendUrl}/doctors`)
+      .then(res => res.json())
+      .then(doctors => {
+        doctors.forEach(doc => {
+          const option = document.createElement('option');
+          option.value = doc.doctor_id;
+          option.textContent = `${doc.name} (${doc.specialization})`;
+          doctorSelect.appendChild(option);
+        });
+      })
+      .catch(() => {
+        doctorSelect.innerHTML = '<option value="">Unable to load doctors</option>';
+      });
+
+    // Update available time slots based on doctor & date
+    const dateInput = document.getElementById('appointment_date');
+    const timeSelect = document.getElementById('appointment_time');
+
+    function fetchAvailableSlots() {
+      const doctorId = doctorSelect.value;
+      const date = dateInput.value;
+      if (!doctorId || !date) {
+        timeSelect.innerHTML = '<option value="">Select doctor and date first</option>';
+        return;
+      }
+
+      fetch(`${backendUrl}/available-slots?doctor_id=${doctorId}&appointment_date=${date}`)
+        .then(res => res.json())
+        .then(data => {
+          timeSelect.innerHTML = '<option value="">-- Select a time slot --</option>';
+          if (data.availableSlots.length === 0) {
+            timeSelect.innerHTML = '<option value="">No slots available</option>';
+            return;
+          }
+          data.availableSlots.forEach(slot => {
+            const option = document.createElement('option');
+            option.value = slot;
+            option.textContent = slot.substring(0, 5); // show HH:mm
+            timeSelect.appendChild(option);
+          });
+        })
+        .catch(() => {
+          timeSelect.innerHTML = '<option value="">Error loading slots</option>';
+        });
+    }
+
+    doctorSelect.addEventListener('change', fetchAvailableSlots);
+    dateInput.addEventListener('change', fetchAvailableSlots);
+
+    // Handle form submission
+    document.getElementById('appointmentForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const appointmentData = {
+        patient_name: document.getElementById('patient_name').value,
+        contact_number: document.getElementById('contact_number').value,
+        doctor_id: doctorSelect.value,
+        appointment_date: dateInput.value,
+        appointment_time: timeSelect.value,
+        status: 'Scheduled'
+      };
+
+      fetch(`${backendUrl}/appointments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointmentData),
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('message').textContent = 'Appointment booked successfully! Your Appointment ID: ' + data.appointmentId;
+          this.reset();
+          timeSelect.innerHTML = '<option value="">-- Select a time slot --</option>';
+        })
+        .catch(() => {
+          document.getElementById('message').textContent = 'Error booking appointment. Please try again later.';
+        });
+    });
+  </script>
+</body>
+</html>
