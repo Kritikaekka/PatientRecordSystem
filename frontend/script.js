@@ -1,4 +1,4 @@
-const backendUrl = 'http://localhost:3000';
+const backendUrl = 'https://patientrecordsystem-1.onrender.com';
 
 // Fetch and display patients
 function loadPatients() {
@@ -59,7 +59,7 @@ function deletePatient(id) {
 loadPatients();
 
 function deletePatient(id) {
-  fetch(`http://localhost:3000/patients/${id}`, {
+  fetch(`${backendUrl}/patients/${id}`, {
     method: 'DELETE'
   })
   .then(res => res.json())
