@@ -6,8 +6,12 @@ const cors = require('cors');
 require('dotenv').config();
 
 
+app.use(cors({
+  origin: 'https://patient-record-system-olive.vercel.app'
+}));
+
 app.use(bodyParser.json());
-app.use(cors());
+
 
 // Sample employees data (replace with real user DB)
 const employees = [
